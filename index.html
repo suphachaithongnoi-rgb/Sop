@@ -1,0 +1,672 @@
+import re
+
+html_code = """<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Website</title>
+
+    <!-- Tailwind CSS & Icons -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+    <!-- Three.js Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Mitr:wght@300;400;500;600;700&family=Sarabun:wght@300;400;500;600;700;800&family=Zhi+Mang+Xing&family=Orbitron:wght@600;900&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --gold-primary: #ffd700;
+            --gold-glow: #ffe89e;
+            --cyan-magic: #00f2fe;
+            --purple-mystic: #b026ff;
+            --pink-neon: #ff007f;
+            --dark-realm: #03050d;
+            --glass-bg: rgba(10, 15, 30, 0.75);
+            --glass-border: rgba(255, 215, 0, 0.35);
+        }
+
+        * {
+            box-sizing: border-box;
+            font-family: 'Sarabun', sans-serif;
+            scroll-behavior: smooth;
+        }
+
+        .font-chinese { font-family: 'Zhi Mang Xing', cursive, 'Sarabun', sans-serif; }
+        .font-header { font-family: 'Mitr', 'Sarabun', sans-serif; }
+        .font-anime { font-family: 'Orbitron', 'Mitr', sans-serif; }
+
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            overflow-x: hidden;
+            background-color: var(--dark-realm);
+            color: #e2e8f0;
+        }
+
+        /* Scroll Snap Setup */
+        .scroll-container {
+            height: 100vh;
+            overflow-y: scroll;
+            scroll-snap-type: y mandatory;
+            scroll-behavior: smooth;
+        }
+
+        .section-snap {
+            height: 100vh;
+            width: 100vw;
+            scroll-snap-align: start;
+            scroll-snap-stop: always;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem 1rem;
+            overflow: hidden;
+        }
+
+        /* 3D Canvas Background */
+        #bg-canvas {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        /* Glassmorphism Cards with Xianxia Glow */
+        .xianxia-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1.5px solid var(--glass-border);
+            border-radius: 1.5rem;
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.8), inset 0 0 20px rgba(0, 242, 254, 0.15);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .xianxia-card::before {
+            content: '';
+            position: absolute;
+            top: -50%; left: -50%;
+            width: 200%; height: 200%;
+            background: radial-gradient(circle, rgba(255, 0, 127, 0.2) 0%, rgba(0, 242, 254, 0.1) 40%, transparent 70%);
+            opacity: 0;
+            transition: opacity 0.5s ease;
+            pointer-events: none;
+        }
+
+        .xianxia-card:hover::before {
+            opacity: 1;
+        }
+
+        .xianxia-card:hover {
+            border-color: var(--gold-primary);
+            box-shadow: 0 0 45px rgba(255, 215, 0, 0.4), 0 0 25px rgba(0, 242, 254, 0.4);
+            transform: translateY(-8px) scale(1.02);
+        }
+
+        /* Anime Mystic Glow Button */
+        .btn-xianxia {
+            background: linear-gradient(135deg, #1e0038 0%, #4c007d 50%, #8000ff 100%);
+            border: 2px solid var(--gold-primary);
+            color: var(--gold-primary);
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.8);
+            box-shadow: 0 0 25px rgba(176, 38, 255, 0.5), inset 0 0 12px rgba(255, 215, 0, 0.3);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-xianxia::after {
+            content: '';
+            position: absolute;
+            top: -50%; left: -50%;
+            width: 200%; height: 200%;
+            background: linear-gradient(60deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+            transform: rotate(30deg);
+            transition: all 0.6s ease;
+        }
+
+        .btn-xianxia:hover::after {
+            left: 100%;
+        }
+
+        .btn-xianxia:hover {
+            background: linear-gradient(135deg, var(--gold-primary), #ff9900);
+            color: #0d0914;
+            text-shadow: none;
+            box-shadow: 0 0 40px rgba(255, 215, 0, 0.9), 0 0 20px rgba(255, 0, 127, 0.6);
+            transform: scale(1.05);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: var(--dark-realm); }
+        ::-webkit-scrollbar-thumb { 
+            background: linear-gradient(180deg, var(--pink-neon), var(--purple-mystic), var(--gold-primary)); 
+            border-radius: 10px; 
+        }
+
+        /* Floating Nav Dots */
+        .nav-dots {
+            position: fixed;
+            right: 2rem;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            gap: 1.2rem;
+        }
+
+        .dot-item {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            border: 2px solid var(--gold-primary);
+            background: transparent;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .dot-item.active, .dot-item:hover {
+            background: var(--gold-primary);
+            box-shadow: 0 0 20px var(--gold-primary), 0 0 10px var(--cyan-magic);
+            transform: scale(1.4);
+        }
+
+        /* Preloader */
+        #preloader {
+            position: fixed; inset: 0;
+            background: #03040a;
+            display: flex; justify-content: center; align-items: center; z-index: 9999;
+            transition: opacity 0.8s ease;
+        }
+
+        .rune-spinner {
+            width: 90px; height: 90px;
+            border: 4px solid transparent;
+            border-top-color: var(--gold-primary);
+            border-right-color: var(--pink-neon);
+            border-bottom-color: var(--cyan-magic);
+            border-radius: 50%;
+            animation: spinRune 1s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite;
+            box-shadow: 0 0 25px rgba(0, 242, 254, 0.5);
+        }
+
+        @keyframes spinRune {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Title Gradient Text */
+        .text-xianxia-title {
+            background: linear-gradient(135deg, #ffffff 0%, var(--gold-primary) 40%, var(--cyan-magic) 80%, var(--pink-neon) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            filter: drop-shadow(0 0 20px rgba(0, 242, 254, 0.5));
+        }
+
+        /* Background Anime Fog Overlay */
+        .cloud-mist {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at 50% 50%, rgba(127, 0, 255, 0.12) 0%, rgba(0, 242, 254, 0.08) 50%, transparent 80%);
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100">
+
+    <!-- 3D WebGL Canvas (Three.js Anime Magic World) -->
+    <canvas id="bg-canvas"></canvas>
+
+    <!-- Preloader Screen -->
+    <div id="preloader">
+        <div class="flex flex-col items-center">
+            <div class="rune-spinner mb-6"></div>
+            <p class="font-chinese text-3xl tracking-widest text-amber-300 animate-pulse">กำลังเปิดประตูกระจกบำเพ็ญเซียน 3D...</p>
+        </div>
+    </div>
+
+    <!-- Navigation Header -->
+    <header class="fixed top-0 left-0 right-0 z-50 py-4 px-8 transition-all duration-300 bg-slate-950/50 backdrop-blur-lg border-b border-amber-400/20">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+            <div class="flex items-center space-x-3 cursor-pointer group" onclick="scrollToSection(0)">
+                <div class="w-10 h-10 rounded-full border-2 border-amber-400 flex items-center justify-center bg-purple-950/80 shadow-[0_0_20px_rgba(255,215,0,0.6)] group-hover:rotate-180 transition-transform duration-700">
+                    <span class="font-chinese text-xl text-amber-300">道</span>
+                </div>
+                <span class="font-header text-2xl font-bold tracking-wide text-xianxia-title">Web<span class="text-cyan-400">Site 3D</span></span>
+            </div>
+
+            <nav class="hidden md:flex items-center space-x-8">
+                <button onclick="scrollToSection(0)" class="font-header text-sm font-medium text-amber-200/80 hover:text-amber-300 hover:shadow-[0_0_10px_rgba(255,215,0,0.5)] transition-all">หน้าแรก</button>
+                <button onclick="scrollToSection(1)" class="font-header text-sm font-medium text-amber-200/80 hover:text-amber-300 hover:shadow-[0_0_10px_rgba(255,215,0,0.5)] transition-all">แนวคิดหลัก</button>
+                <button onclick="scrollToSection(2)" class="font-header text-sm font-medium text-amber-200/80 hover:text-amber-300 hover:shadow-[0_0_10px_rgba(255,215,0,0.5)] transition-all">สำนักบทเรียน</button>
+                <button onclick="scrollToSection(3)" class="font-header text-sm font-medium text-amber-200/80 hover:text-amber-300 hover:shadow-[0_0_10px_rgba(255,215,0,0.5)] transition-all">ผู้สร้างสรรค์</button>
+            </nav>
+
+            <a href="#learning-chapters" onclick="scrollToSection(2)" class="btn-xianxia px-6 py-2.5 rounded-full text-xs font-bold font-header uppercase tracking-wider">
+                เริ่มบทเรียน
+            </a>
+        </div>
+    </header>
+
+    <!-- Floating Navigation Dots -->
+    <div class="nav-dots hidden lg:flex">
+        <div class="dot-item active" onclick="scrollToSection(0)" title="หน้าแรก"></div>
+        <div class="dot-item" onclick="scrollToSection(1)" title="แนวคิดหลัก"></div>
+        <div class="dot-item" onclick="scrollToSection(2)" title="สำนักบทเรียน"></div>
+        <div class="dot-item" onclick="scrollToSection(3)" title="ผู้สร้างสรรค์"></div>
+    </div>
+
+    <!-- Scroll Snap Main Container -->
+    <div class="scroll-container" id="main-scroll">
+
+        <!-- SECTION 1: HERO SECTION -->
+        <section class="section-snap" id="hero">
+            <div class="cloud-mist"></div>
+            <div class="max-w-5xl mx-auto text-center relative z-10 px-4 flex flex-col items-center justify-center h-full">
+                <div class="inline-flex items-center gap-2 px-5 py-2 rounded-full border border-amber-400/50 bg-purple-950/70 backdrop-blur-md mb-8 shadow-[0_0_25px_rgba(255,215,0,0.3)]">
+                    <span class="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-ping"></span>
+                    <span class="font-chinese text-xl text-amber-300">修仙界 3D Realm</span>
+                    <span class="text-xs font-anime text-slate-300 tracking-widest">CYBER XIANXIA EXPERIENCE</span>
+                </div>
+
+                <h1 class="font-header text-5xl md:text-7xl lg:text-8xl font-black mb-6 leading-tight tracking-wide text-xianxia-title">
+                    ท่องมิติการเรียนรู้<br>
+                    <span class="text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-cyan-300 to-pink-500">สื่อดิจิทัลแห่งอนาคต</span>
+                </h1>
+
+                <p class="text-base md:text-xl max-w-2xl mx-auto mb-10 text-slate-300 leading-relaxed font-light">
+                    ยกระดับภูมิปัญญาการออกแบบสื่อ ด้วยการเดินทางในแดนเซียนการ์ตูน 3D สุดตระการตา ปลดล็อกพลังแห่งความเชี่ยวชาญด้านดิจิทัล
+                </p>
+
+                <div class="flex flex-col sm:flex-row items-center gap-6">
+                    <button onclick="scrollToSection(2)" class="btn-xianxia px-10 py-4 rounded-full font-header font-bold text-lg flex items-center gap-3">
+                        เข้าสู่บทเรียน <i data-feather="compass" class="w-5 h-5 text-amber-300"></i>
+                    </button>
+                    <button onclick="scrollToSection(1)" class="px-8 py-4 rounded-full border border-cyan-400/60 text-cyan-300 font-header font-semibold text-lg hover:bg-cyan-500/20 hover:shadow-[0_0_25px_rgba(0,242,254,0.5)] transition-all">
+                        หยั่งรู้แนวคิดหลัก
+                    </button>
+                </div>
+
+                <div class="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 cursor-pointer opacity-75 hover:opacity-100 transition-opacity" onclick="scrollToSection(1)">
+                    <span class="text-xs font-header tracking-widest text-amber-300/80 uppercase">เลื่อนลงเพื่อท่องแดนเซียน</span>
+                    <i data-feather="chevron-down" class="w-6 h-6 text-amber-300 animate-bounce"></i>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 2: CORE CONCEPTS -->
+        <section class="section-snap" id="core-concepts">
+            <div class="max-w-6xl mx-auto px-4 w-full relative z-10">
+                <div class="text-center mb-12">
+                    <span class="font-chinese text-3xl text-cyan-400 tracking-widest block mb-2">大道至简</span>
+                    <h2 class="font-header text-4xl md:text-5xl font-bold text-xianxia-title">สำรวจรากฐานแนวคิดหลัก</h2>
+                    <p class="text-slate-400 mt-2 text-sm md:text-base">สามหลักการบำเพ็ญเพียรเพื่อความชำนาญในโลกสื่อดิจิทัล</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <!-- Concept 1 -->
+                    <div class="xianxia-card p-8 group flex flex-col justify-between">
+                        <div>
+                            <div class="w-16 h-16 rounded-2xl bg-amber-500/20 border border-amber-400/50 flex items-center justify-center mb-6 text-amber-300 shadow-[0_0_25px_rgba(255,215,0,0.3)] group-hover:scale-110 transition-transform">
+                                <i data-feather="book-open" class="w-8 h-8"></i>
+                            </div>
+                            <h3 class="font-header text-2xl font-bold mb-3 text-amber-200">สาระการเรียนรู้</h3>
+                            <p class="text-slate-300 text-sm leading-relaxed mb-6">
+                                ภาพรวมเนื้อหาหลักในวิชาการออกแบบสื่อดิจิทัล รวบรวมองค์ความรู้เข้มข้นดั่งคัมภีร์ไร้เทียมทาน
+                            </p>
+                        </div>
+                        <a href="concepts.html" class="inline-flex items-center gap-2 text-amber-300 font-header font-semibold text-sm group-hover:translate-x-2 transition-transform">
+                            ศึกษาเพิ่มเติม <i data-feather="arrow-right" class="w-4 h-4"></i>
+                        </a>
+                    </div>
+
+                    <!-- Concept 2 -->
+                    <div class="xianxia-card p-8 group flex flex-col justify-between">
+                        <div>
+                            <div class="w-16 h-16 rounded-2xl bg-cyan-500/20 border border-cyan-400/50 flex items-center justify-center mb-6 text-cyan-300 shadow-[0_0_25px_rgba(0,242,254,0.3)] group-hover:scale-110 transition-transform">
+                                <i data-feather="zap" class="w-8 h-8"></i>
+                            </div>
+                            <h3 class="font-header text-2xl font-bold mb-3 text-cyan-200">ความรู้ก่อนเรียน</h3>
+                            <p class="text-slate-300 text-sm leading-relaxed mb-6">
+                                ปรับลมปราณและพื้นฐานความรู้ เตรียมความพร้อมก่อนก้าวเข้าสู่ศาสตร์แห่งสื่อดิจิทัลชั้นสูง
+                            </p>
+                        </div>
+                        <a href="advanced-topics.html" class="inline-flex items-center gap-2 text-cyan-300 font-header font-semibold text-sm group-hover:translate-x-2 transition-transform">
+                            ทบทวนพื้นฐาน <i data-feather="arrow-right" class="w-4 h-4"></i>
+                        </a>
+                    </div>
+
+                    <!-- Concept 3 -->
+                    <div class="xianxia-card p-8 group flex flex-col justify-between">
+                        <div>
+                            <div class="w-16 h-16 rounded-2xl bg-pink-500/20 border border-pink-400/50 flex items-center justify-center mb-6 text-pink-300 shadow-[0_0_25px_rgba(255,0,127,0.3)] group-hover:scale-110 transition-transform">
+                                <i data-feather="users" class="w-8 h-8"></i>
+                            </div>
+                            <h3 class="font-header text-2xl font-bold mb-3 text-pink-200">จัดทำโดย</h3>
+                            <p class="text-slate-300 text-sm leading-relaxed mb-6">
+                                ทำความรู้จักคณะอาจารย์และผู้เชี่ยวชาญผู้รังสรรค์แดนการเรียนรู้นี้ขึ้นมา
+                            </p>
+                        </div>
+                        <a href="prepared_by.html" class="inline-flex items-center gap-2 text-pink-300 font-header font-semibold text-sm group-hover:translate-x-2 transition-transform">
+                            ทำความรู้จักผู้สร้าง <i data-feather="arrow-right" class="w-4 h-4"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 3: LEARNING CHAPTERS -->
+        <section class="section-snap" id="learning-chapters">
+            <div class="max-w-7xl mx-auto px-4 w-full relative z-10 overflow-y-auto max-h-[90vh] py-8">
+                <div class="text-center mb-8">
+                    <span class="font-chinese text-3xl text-amber-400 tracking-widest block mb-1">六大仙门</span>
+                    <h2 class="font-header text-3xl md:text-5xl font-bold text-xianxia-title">สำนักคัมภีร์บทเรียน</h2>
+                    <p class="text-slate-400 mt-2 text-sm">เลือกบทเรียนเพื่อเริ่มฝึกฝนและศึกษาเนื้อหาฉบับเต็ม</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <!-- Lesson Cards -->
+                    <div class="xianxia-card p-6 flex flex-col justify-between group">
+                        <div class="relative h-44 rounded-xl overflow-hidden mb-4 border border-slate-700">
+                            <img src="https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&w=800&q=80" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" alt="ลักษณะของสื่อดิจิทัล">
+                            <div class="absolute top-3 left-3 w-8 h-8 rounded-full bg-amber-400 text-slate-950 font-header font-bold text-sm flex items-center justify-center shadow-lg">01</div>
+                        </div>
+                        <h3 class="font-header text-xl font-bold text-amber-200 mb-2">ลักษณะของสื่อดิจิทัล</h3>
+                        <p class="text-slate-300 text-xs leading-relaxed mb-4">เจาะลึกคุณสมบัติพื้นฐานและพลังแฝงของสื่อยุคใหม่ที่เหนือกว่าสื่อดั้งเดิม</p>
+                        <a href="lesson1.html" class="btn-xianxia py-2.5 px-4 rounded-xl font-header text-xs text-center font-bold flex justify-center items-center gap-2">
+                            เข้าสู่บทเรียนที่ 1 <i data-feather="play-circle" class="w-4 h-4"></i>
+                        </a>
+                    </div>
+
+                    <div class="xianxia-card p-6 flex flex-col justify-between group">
+                        <div class="relative h-44 rounded-xl overflow-hidden mb-4 border border-slate-700">
+                            <img src="https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=800&q=80" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" alt="องค์ประกอบของสื่อดิจิทัล">
+                            <div class="absolute top-3 left-3 w-8 h-8 rounded-full bg-cyan-400 text-slate-950 font-header font-bold text-sm flex items-center justify-center shadow-lg">02</div>
+                        </div>
+                        <h3 class="font-header text-xl font-bold text-cyan-200 mb-2">องค์ประกอบของสื่อดิจิทัล</h3>
+                        <p class="text-slate-300 text-xs leading-relaxed mb-4">วิเคราะห์ส่วนผสมที่ลงตัวของข้อความ กราฟิก เสียง และวิดีโอแบบมือโปร</p>
+                        <a href="lesson2.html" class="btn-xianxia py-2.5 px-4 rounded-xl font-header text-xs text-center font-bold flex justify-center items-center gap-2">
+                            เข้าสู่บทเรียนที่ 2 <i data-feather="play-circle" class="w-4 h-4"></i>
+                        </a>
+                    </div>
+
+                    <div class="xianxia-card p-6 flex flex-col justify-between group">
+                        <div class="relative h-44 rounded-xl overflow-hidden mb-4 border border-slate-700">
+                            <img src="https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&w=800&q=80" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" alt="ความต้องการของผู้ใช้งาน">
+                            <div class="absolute top-3 left-3 w-8 h-8 rounded-full bg-pink-500 text-white font-header font-bold text-sm flex items-center justify-center shadow-lg">03</div>
+                        </div>
+                        <h3 class="font-header text-xl font-bold text-pink-200 mb-2">ความต้องการของผู้ใช้งาน</h3>
+                        <p class="text-slate-300 text-xs leading-relaxed mb-4">ทำความเข้าใจจิตวิทยาและประสบการณ์ผู้ใช้ (UX) เพื่อการออกแบบที่ตรงใจ</p>
+                        <a href="lesson3.html" class="btn-xianxia py-2.5 px-4 rounded-xl font-header text-xs text-center font-bold flex justify-center items-center gap-2">
+                            เข้าสู่บทเรียนที่ 3 <i data-feather="play-circle" class="w-4 h-4"></i>
+                        </a>
+                    </div>
+
+                    <div class="xianxia-card p-6 flex flex-col justify-between group">
+                        <div class="relative h-44 rounded-xl overflow-hidden mb-4 border border-slate-700">
+                            <img src="https://images.unsplash.com/photo-1509343256512-d77a5cb3791b?auto=format&fit=crop&w=800&q=80" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" alt="หลักการออกแบบสื่อ">
+                            <div class="absolute top-3 left-3 w-8 h-8 rounded-full bg-emerald-400 text-slate-950 font-header font-bold text-sm flex items-center justify-center shadow-lg">04</div>
+                        </div>
+                        <h3 class="font-header text-xl font-bold text-emerald-200 mb-2">หลักการออกแบบสื่อ</h3>
+                        <p class="text-slate-300 text-xs leading-relaxed mb-4">กฎเหล็กของการจัดวางสัดส่วน สีสัน และความสมดุลที่นักออกแบบต้องรู้</p>
+                        <a href="lesson4.html" class="btn-xianxia py-2.5 px-4 rounded-xl font-header text-xs text-center font-bold flex justify-center items-center gap-2">
+                            เข้าสู่บทเรียนที่ 4 <i data-feather="play-circle" class="w-4 h-4"></i>
+                        </a>
+                    </div>
+
+                    <div class="xianxia-card p-6 flex flex-col justify-between group">
+                        <div class="relative h-44 rounded-xl overflow-hidden mb-4 border border-slate-700">
+                            <img src="https://images.unsplash.com/photo-1626785774573-4b799315345d?auto=format&fit=crop&w=800&q=80" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" alt="การออกแบบเชิงสร้างสรรค์">
+                            <div class="absolute top-3 left-3 w-8 h-8 rounded-full bg-rose-500 text-white font-header font-bold text-sm flex items-center justify-center shadow-lg">05</div>
+                        </div>
+                        <h3 class="font-header text-xl font-bold text-rose-200 mb-2">การออกแบบเชิงสร้างสรรค์</h3>
+                        <p class="text-slate-300 text-xs leading-relaxed mb-4">เปลี่ยนไอเดียให้เป็นงานจริงด้วยเครื่องมือและเทคนิคแบบ Creative Mind</p>
+                        <a href="lesson5.html" class="btn-xianxia py-2.5 px-4 rounded-xl font-header text-xs text-center font-bold flex justify-center items-center gap-2">
+                            เข้าสู่บทเรียนที่ 5 <i data-feather="play-circle" class="w-4 h-4"></i>
+                        </a>
+                    </div>
+
+                    <div class="xianxia-card p-6 flex flex-col justify-between group">
+                        <div class="relative h-44 rounded-xl overflow-hidden mb-4 border border-slate-700">
+                            <img src="https://images.unsplash.com/photo-1561070791-2526d30994b5?auto=format&fit=crop&w=800&q=80" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" alt="ตัวอักษรและรูปภาพ">
+                            <div class="absolute top-3 left-3 w-8 h-8 rounded-full bg-orange-400 text-slate-950 font-header font-bold text-sm flex items-center justify-center shadow-lg">06</div>
+                        </div>
+                        <h3 class="font-header text-xl font-bold text-orange-200 mb-2">ตัวอักษรและรูปภาพ</h3>
+                        <p class="text-slate-300 text-xs leading-relaxed mb-4">ศาสตร์แห่ง Typography และ Visual Storytelling ที่ทรงพลังที่สุด</p>
+                        <a href="lesson6.html" class="btn-xianxia py-2.5 px-4 rounded-xl font-header text-xs text-center font-bold flex justify-center items-center gap-2">
+                            เข้าสู่บทเรียนที่ 6 <i data-feather="play-circle" class="w-4 h-4"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 4: FOOTER & CREATORS -->
+        <section class="section-snap" id="creators">
+            <div class="max-w-5xl mx-auto px-4 w-full text-center relative z-10">
+                <div class="xianxia-card p-10 md:p-14">
+                    <div class="w-16 h-16 rounded-full bg-amber-400/20 border border-amber-400 flex items-center justify-center mx-auto mb-6 shadow-[0_0_25px_rgba(255,215,0,0.5)]">
+                        <span class="font-chinese text-3xl text-amber-300">仙</span>
+                    </div>
+
+                    <h2 class="font-header text-3xl md:text-4xl font-bold text-xianxia-title mb-4">เว็บไซต์เพื่อการเรียนรู้สื่อดิจิทัล 3D</h2>
+                    <p class="text-slate-300 max-w-xl mx-auto mb-8 text-sm md:text-base leading-relaxed">
+                        ผสมผสานศิลปะการ์ตูนอนิเมะเซียน 3D และเทคโนโลยีการเรียนรู้อันล้ำสมัย มุ่งสู่ความเชี่ยวชาญด้านดิจิทัล
+                    </p>
+
+                    <div class="flex justify-center gap-6 mb-10">
+                        <a href="https://www.facebook.com/suphachai.thongnoi.7" target="_blank" class="w-12 h-12 rounded-full border border-amber-400/50 bg-slate-900/80 flex items-center justify-center text-amber-300 hover:bg-amber-400 hover:text-slate-950 transition-all shadow-[0_0_20px_rgba(255,215,0,0.3)]">
+                            <i data-feather="facebook" class="w-5 h-5"></i>
+                        </a>
+                        <a href="https://www.instagram.com/supcai.tn" target="_blank" class="w-12 h-12 rounded-full border border-amber-400/50 bg-slate-900/80 flex items-center justify-center text-amber-300 hover:bg-amber-400 hover:text-slate-950 transition-all shadow-[0_0_20px_rgba(255,215,0,0.3)]">
+                            <i data-feather="instagram" class="w-5 h-5"></i>
+                        </a>
+                    </div>
+
+                    <div class="border-t border-amber-400/20 pt-6 text-xs text-slate-400 font-header">
+                        © 2026 Celestial Anime Digital Learning Realm. All rights reserved.
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </div>
+
+    <!-- Three.js Anime Magic & Flying Sword Engine -->
+    <script>
+        feather.replace();
+
+        // Preloader Hide
+        window.addEventListener('load', () => {
+            const preloader = document.getElementById('preloader');
+            if (preloader) {
+                preloader.style.opacity = '0';
+                setTimeout(() => { preloader.style.display = 'none'; }, 800);
+            }
+        });
+
+        // Scroll Snap Sync
+        const scrollContainer = document.getElementById('main-scroll');
+        const dots = document.querySelectorAll('.dot-item');
+        const sections = document.querySelectorAll('.section-snap');
+
+        function scrollToSection(index) {
+            sections[index].scrollIntoView({ behavior: 'smooth' });
+        }
+
+        scrollContainer.addEventListener('scroll', () => {
+            const scrollPos = scrollContainer.scrollTop;
+            const windowHeight = window.innerHeight;
+            const activeIndex = Math.round(scrollPos / windowHeight);
+
+            dots.forEach((dot, idx) => {
+                if (idx === activeIndex) {
+                    dot.classList.add('active');
+                } else {
+                    dot.classList.remove('active');
+                }
+            });
+        });
+
+        // Three.js Anime 3D World (Magic Array + Flying Sword + Particles)
+        (function initAnime3DWorld() {
+            const canvas = document.getElementById('bg-canvas');
+            const scene = new THREE.Scene();
+            const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            const renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true, antialias: true });
+
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+            // 1. Particle System (Spiritual Aura Effects)
+            const particleCount = 350;
+            const geometry = new THREE.BufferGeometry();
+            const positions = new Float32Array(particleCount * 3);
+            const colors = new Float32Array(particleCount * 3);
+
+            const colorGold = new THREE.Color(0xffd700);
+            const colorCyan = new THREE.Color(0x00f2fe);
+            const colorPink = new THREE.Color(0xff007f);
+
+            for (let i = 0; i < particleCount; i++) {
+                positions[i * 3] = (Math.random() - 0.5) * 22;
+                positions[i * 3 + 1] = (Math.random() - 0.5) * 22;
+                positions[i * 3 + 2] = (Math.random() - 0.5) * 22;
+
+                let chosenColor = colorGold;
+                if (i % 3 === 1) chosenColor = colorCyan;
+                if (i % 3 === 2) chosenColor = colorPink;
+
+                colors[i * 3] = chosenColor.r;
+                colors[i * 3 + 1] = chosenColor.g;
+                colors[i * 3 + 2] = chosenColor.b;
+            }
+
+            geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+            const particleMaterial = new THREE.PointsMaterial({
+                size: 0.15,
+                vertexColors: true,
+                transparent: true,
+                opacity: 0.85
+            });
+
+            const particleSystem = new THREE.Points(geometry, particleMaterial);
+            scene.add(particleSystem);
+
+            // 2. Magic Array Circles (วงเวทมนตร์อนิเมะ)
+            const magicGroup = new THREE.Group();
+            
+            const ring1Geo = new THREE.TorusGeometry(3.5, 0.03, 16, 100);
+            const ring1Mat = new THREE.MeshBasicMaterial({ color: 0x00f2fe, wireframe: true });
+            const ring1 = new THREE.Mesh(ring1Geo, ring1Mat);
+            magicGroup.add(ring1);
+
+            const ring2Geo = new THREE.TorusGeometry(2.5, 0.02, 16, 80);
+            const ring2Mat = new THREE.MeshBasicMaterial({ color: 0xffd700, wireframe: true });
+            const ring2 = new THREE.Mesh(ring2Geo, ring2Mat);
+            ring2.rotation.x = Math.PI / 3;
+            magicGroup.add(ring2);
+
+            const ring3Geo = new THREE.TorusGeometry(1.8, 0.02, 16, 60);
+            const ring3Mat = new THREE.MeshBasicMaterial({ color: 0xff007f, wireframe: true });
+            const ring3 = new THREE.Mesh(ring3Geo, ring3Mat);
+            ring3.rotation.y = Math.PI / 4;
+            magicGroup.add(ring3);
+
+            magicGroup.position.set(-3.5, 0, -2);
+            scene.add(magicGroup);
+
+            // 3. 3D Flying Sword (กระบี่บินสไตล์การ์ตูนจีน/ญี่ปุ่น)
+            const swordGroup = new THREE.Group();
+
+            // Blade (Crystal Neon Cyan)
+            const bladeGeo = new THREE.ConeGeometry(0.2, 3.2, 5);
+            const bladeMat = new THREE.MeshBasicMaterial({ color: 0x00f2fe, wireframe: true });
+            const blade = new THREE.Mesh(bladeGeo, bladeMat);
+            blade.rotation.x = Math.PI;
+            swordGroup.add(blade);
+
+            // Sword Guard (Golden Wings)
+            const guardGeo = new THREE.BoxGeometry(1.0, 0.1, 0.3);
+            const guardMat = new THREE.MeshBasicMaterial({ color: 0xffd700 });
+            const guard = new THREE.Mesh(guardGeo, guardMat);
+            guard.position.y = -1.6;
+            swordGroup.add(guard);
+
+            // Aura Ring around Sword
+            const auraGeo = new THREE.TorusGeometry(0.6, 0.02, 16, 50);
+            const auraMat = new THREE.MeshBasicMaterial({ color: 0xff007f, wireframe: true });
+            const auraRing = new THREE.Mesh(auraGeo, auraMat);
+            auraRing.position.y = -0.5;
+            auraRing.rotation.x = Math.PI / 2;
+            swordGroup.add(auraRing);
+
+            swordGroup.position.set(4, 0, -1);
+            scene.add(swordGroup);
+
+            camera.position.z = 7;
+
+            // Interactive Mouse Control
+            let mouseX = 0, mouseY = 0;
+            document.addEventListener('mousemove', (e) => {
+                mouseX = (e.clientX / window.innerWidth - 0.5) * 1.0;
+                mouseY = (e.clientY / window.innerHeight - 0.5) * 1.0;
+            });
+
+            const clock = new THREE.Clock();
+
+            function animate() {
+                requestAnimationFrame(animate);
+                const elapsedTime = clock.getElapsedTime();
+
+                // Rotate Particles
+                particleSystem.rotation.y = elapsedTime * 0.05;
+                particleSystem.rotation.x = elapsedTime * 0.02;
+
+                // Animate Magic Array Rings
+                ring1.rotation.z = elapsedTime * 0.2;
+                ring2.rotation.y = -elapsedTime * 0.3;
+                ring3.rotation.x = elapsedTime * 0.4;
+
+                // Animate Flying Sword Floating
+                swordGroup.position.y = Math.sin(elapsedTime * 1.8) * 0.35;
+                swordGroup.rotation.z = Math.sin(elapsedTime * 0.9) * 0.2;
+                swordGroup.rotation.y += 0.015;
+                auraRing.rotation.z = elapsedTime * 2.0;
+
+                // Parallax Camera Tilt
+                camera.position.x += (mouseX - camera.position.x) * 0.05;
+                camera.position.y += (-mouseY - camera.position.y) * 0.05;
+
+                renderer.render(scene, camera);
+            }
+            animate();
+
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+        })();
+    </script>
+</body>
+</html>"""
+
+with open("index.html", "w", encoding="utf-8") as f:
+    f.write(html_code)
+
+print("Successfully updated index.html with Cool Anime 3D & Xianxia Magic Effects!")
